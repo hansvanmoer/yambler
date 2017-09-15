@@ -16,6 +16,7 @@ Makefile.in
 /compile
 /config.guess
 /config.h.in
+/config.h
 /config.sub
 /configure
 /configure.scan
@@ -23,6 +24,8 @@ Makefile.in
 /install-sh
 /missing
 /stamp-h1
+.deps
+*~
 
 # https://www.gnu.org/software/libtool/
 
@@ -31,3 +34,12 @@ Makefile.in
 # http://www.gnu.org/software/texinfo
 
 /texinfo.tex
+
+# C
+
+*.a
+*.o
+
+# Executables
+
+/src/test/yambler_test
