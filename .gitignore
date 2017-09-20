@@ -7,7 +7,6 @@ Makefile
 /py-compile
 /test-driver
 /ylwrap
-.deps/*
 
 # http://www.gnu.org/software/autoconf
 
@@ -18,6 +17,7 @@ Makefile
 /compile
 /config.guess
 /config.h.in
+/config.h
 /config.sub
 /configure
 /configure.scan
@@ -28,6 +28,7 @@ Makefile
 /config.log
 /config.h
 /config.status
+.deps/*
 
 # https://www.gnu.org/software/libtool/
 
