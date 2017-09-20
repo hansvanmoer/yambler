@@ -3,13 +3,14 @@
 
 AC_PREREQ([2.69])
 AC_INIT([yambler], [1.0.0], [hansvm.projects@gmail.com])
-AC_CONFIG_SRCDIR([src/yambler/yambler_parser.c])
+AC_CONFIG_SRCDIR([src/libyambler/yambler_parser.c])
 AC_CONFIG_HEADERS([config.h])
 
 AM_INIT_AUTOMAKE
 
 # Checks for programs.
 AC_PROG_CC
+AC_PROG_CC_STDC
 AC_PROG_RANLIB
 
 # Checks for libraries.
@@ -27,6 +28,19 @@ AC_FUNC_MALLOC
 
 AC_CONFIG_FILES([Makefile
                  src/Makefile
-                 src/yambler/Makefile
-				 src/test/Makefile])
+                 src/libyambler/Makefile
+				 src/test/Makefile	
+				 src/test/conf/Makefile		 
+				 src/test/lib/Makefile
+				 src/test/yambler_test.tests/Makefile
+				 ])
+
+# Setting up testing
+if test x"$DEJAGNU" = x
+then
+		DEJAGNU="\$top_srcdir/src/test/global-conf.exp"
+fi
+
+AC_SUBST(DEJAGNU)
+
 AC_OUTPUT
