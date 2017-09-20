@@ -2,4 +2,4 @@
 # Main source file
 #
 
-SUBDIRS=libyambler test
+SUBDIRS=libyambler yambler

@@ -29,10 +29,7 @@ AC_FUNC_MALLOC
 AC_CONFIG_FILES([Makefile
                  src/Makefile
                  src/libyambler/Makefile
-				 src/test/Makefile	
-				 src/test/conf/Makefile		 
-				 src/test/lib/Makefile
-				 src/test/yambler_test.tests/Makefile
+				 src/yambler/Makefile
 				 ])
 
 # Setting up testing

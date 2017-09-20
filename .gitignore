@@ -1,11 +1,13 @@
 # http://www.gnu.org/software/automake
 
 Makefile.in
+Makefile
 /ar-lib
 /mdate-sh
 /py-compile
 /test-driver
 /ylwrap
+.deps/*
 
 # http://www.gnu.org/software/autoconf
 
@@ -23,6 +25,9 @@ Makefile.in
 /install-sh
 /missing
 /stamp-h1
+/config.log
+/config.h
+/config.status
 
 # https://www.gnu.org/software/libtool/
 
@@ -31,3 +36,12 @@ Makefile.in
 # http://www.gnu.org/software/texinfo
 
 /texinfo.tex
+
+# C compiler artifacts
+*.o
+/src/libyambler/libyambler.a
+/src/yambler/yambler
+
+# Temporary editor files
+*~
+*.swp
