@@ -4,6 +4,7 @@
 #include <stddef.h>
 
 #include "yambler_type.h"
+#include "yambler_encoder.h"
 
 #define ACTION_NONE '\0'
 #define ACTION_DECODE 'd'
@@ -30,6 +31,8 @@ extern size_t buffer_size;
 extern enum yambler_encoding input_encoding;
 
 extern enum yambler_encoding output_encoding;
+
+extern yambler_encoder_flag encoder_flags;
 
 yambler_status parse_options(int arg_count, char * const args[]);
 

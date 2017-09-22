@@ -83,7 +83,7 @@ static yambler_status yambler_decoder_fill(yambler_decoder_p decoder){
 }
 
 static void yambler_decoder_pop(yambler_decoder_p decoder, size_t amount){
-	assert(decoder->length > amount);
+	assert(decoder->length >= amount);
 	
 	decoder->get += amount;
 	decoder->length -= amount;
@@ -125,6 +125,8 @@ static yambler_status yambler_decoder_detect_encoding(yambler_decoder_p decoder,
 	}else{
 		if(length >= 3 && bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF){
 			bom_size = 3;
+		}else{
+			bom_size = 0;
 		}
 		encoding = YAMBLER_ENCODING_UTF_8;
 	}

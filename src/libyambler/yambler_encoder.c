@@ -36,7 +36,7 @@ yambler_status yambler_encoder_create(yambler_encoder_p *dest, size_t buffer_siz
 		return YAMBLER_BOUNDS_ERROR;
 	}
 
-	yambler_encoder_p encoder = malloc(sizeof(yambler_encoder_p));
+	yambler_encoder_p encoder = malloc(sizeof(struct yambler_encoder));
 	if(encoder == NULL){
 		return YAMBLER_ALLOC_ERROR;
 	}
@@ -58,6 +58,8 @@ yambler_status yambler_encoder_create(yambler_encoder_p *dest, size_t buffer_siz
 	encoder->write = write;
 	encoder->open = open;
 	encoder->close = close;
+
+	*dest = encoder;
 	
 	return YAMBLER_OK;
 }
@@ -66,50 +68,47 @@ static void add_bom(yambler_encoder_p encoder){
    
 	assert(encoder != NULL);
 	assert(encoder->length == 0);
-
-	yambler_byte *bom = encoder->buffer;
-	size_t length;
+	
 	switch(encoder->encoding){
 	case YAMBLER_ENCODING_UTF_32BE:
-		bom[0] = 0xFE;
-		bom[1] = 0xFF;
-		bom[2] = 0x00;
-		bom[3] = 0x00;
-		length = 4;
+		encoder->buffer[0] = 0xFE;
+		encoder->buffer[1] = 0xFF;
+		encoder->buffer[2] = 0x00;
+		encoder->buffer[3] = 0x00;
+		encoder->length = 4;
 		break;
 	case YAMBLER_ENCODING_UTF_32LE:
-		bom[0] = 0x00;
-		bom[1] = 0x00;
-		bom[2] = 0xFF;
-		bom[3] = 0xFE;
-		length = 4;
+		encoder->buffer[0] = 0x00;
+		encoder->buffer[1] = 0x00;
+		encoder->buffer[2] = 0xFF;
+		encoder->buffer[3] = 0xFE;
+		encoder->length = 4;
 		break;
 	case YAMBLER_ENCODING_UTF_16BE:
-		bom[0] = 0xFE;
-		bom[1] = 0xFF;
-		length = 2;
+		encoder->buffer[0] = 0xFE;
+		encoder->buffer[1] = 0xFF;
+		encoder->length = 2;
 		break;
 	case YAMBLER_ENCODING_UTF_16LE:
-		bom[0] = 0xFF;
-		bom[1] = 0xFE;
-		length = 2;
+		encoder->buffer[0] = 0xFF;
+		encoder->buffer[1] = 0xFE;
+		encoder->length = 2;
 		break;
 	case YAMBLER_ENCODING_UTF_8:
-		bom[0] = 0xEF;
-		bom[1] = 0xBB;
-		bom[2] = 0xBF;
-		length = 3;
+		encoder->buffer[0] = 0xEF;
+		encoder->buffer[1] = 0xBB;
+		encoder->buffer[2] = 0xBF;
+		encoder->length = 3;
 		break;
 	default:
-		length = 0;
+		encoder->length = 0;
 	}
-	encoder->length = length;
 }
 
 yambler_status yambler_encoder_open(yambler_encoder_p encoder){
 	assert(encoder != NULL);
 	
-	encoder->descriptor = iconv_open(YAMBLER_INTERNAL_ENCODING, yambler_encoding_name(encoder->encoding));
+	encoder->descriptor = iconv_open(yambler_encoding_name(encoder->encoding), YAMBLER_INTERNAL_ENCODING);
 	if(encoder->descriptor == (iconv_t)-1){
 		return YAMBLER_ENCODING_ERROR;
 	}
@@ -128,20 +127,17 @@ yambler_status yambler_encoder_open(yambler_encoder_p encoder){
 }
 
 static yambler_status yambler_encoder_flush(yambler_encoder_p encoder){
-	if(encoder->write){
-		size_t count = 1;
-		size_t total_count = 0;
-		yambler_byte *out = encoder->buffer;
-		while(total_count != encoder->length && count != 0){
-			yambler_status status = (*encoder->write)(encoder->write_state, out, encoder->size, &count);
-			if(status){
-				return status;
-			}
-			out+=count;
-			total_count+=count;
+	assert(encoder != NULL);
+	
+	if(encoder->write && encoder->length != 0){
+		size_t count;
+		yambler_status status = (*encoder->write)(encoder->write_state, encoder->buffer, encoder->length, &count);
+		if(status){
+			return status;
+		}else if(count != encoder->length){
+			return YAMBLER_ERROR;
 		}
-		encoder->length-=total_count;
-		memmove(encoder->buffer, encoder->buffer + encoder->size - encoder->length, encoder->length * sizeof(yambler_byte));
+		encoder->length = 0;
 	}
 	return YAMBLER_OK;
 }
@@ -149,35 +145,35 @@ static yambler_status yambler_encoder_flush(yambler_encoder_p encoder){
 yambler_status yambler_encoder_encode(yambler_encoder_p encoder, const yambler_char *buffer, size_t buffer_size, size_t *write_count){
 	assert(encoder != NULL);
 	assert(buffer != NULL);
-	
+
 	size_t in_remainder = buffer_size * sizeof(yambler_char);
-	char *in = (char *)buffer; //NOTE: some versions of iconv take char ** instead of const char ** need to fix this
-	char *prev_in = in;
-	size_t total_count = 0;
-	while(in_remainder != 0){
-		size_t out_remainder = (encoder->size - encoder->length) * sizeof(yambler_byte);
+	char *in = (char *)buffer;
+	
+	while(1){
 		char *out = (char *)(encoder->buffer + encoder->length);
-		size_t result = iconv(encoder->descriptor, &out, &out_remainder, &in, &in_remainder);
+		size_t out_remainder = (encoder->size - encoder->length) * sizeof(yambler_byte);
+		
+		size_t result = iconv(encoder->descriptor, &in, &in_remainder, &out, &out_remainder);
 		if(result == (size_t)-1){
-			if(errno == EILSEQ || errno == EINVAL){
+			if(errno == EINVAL || errno == EILSEQ){
 				return YAMBLER_ENCODING_ERROR;
 			}
 		}
-		size_t count = (prev_in - in) / sizeof(yambler_char);
-		prev_in = in;
-		encoder->length+=count;
+		encoder->length = encoder->size - out_remainder / sizeof(yambler_byte);
+
 		yambler_status status = yambler_encoder_flush(encoder);
 		if(status){
 			return status;
 		}
-		if(encoder->length != 0){
-			return YAMBLER_ENCODING_ERROR;
+		if(in_remainder == 0){
+			break;
 		}
-		total_count += count;
 	}
+
 	if(write_count){
-		*write_count = total_count;
+		*write_count = in_remainder / sizeof(yambler_char);
 	}
+	
 	return YAMBLER_OK;
 }
 

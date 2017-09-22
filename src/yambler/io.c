@@ -40,3 +40,9 @@ yambler_status binary_read(yambler_decoder_state state, yambler_byte *buffer, si
 	*read_count = fread(buffer, sizeof(yambler_byte), buffer_size, file);
 	return YAMBLER_OK;
 }
+
+yambler_status binary_write(yambler_encoder_state state, const yambler_byte *buffer, size_t buffer_size, size_t *write_count){
+	FILE *file = (FILE *)state;
+	*write_count = fwrite(buffer, sizeof(yambler_byte), buffer_size, file);
+	return *write_count == buffer_size ? YAMBLER_OK : YAMBLER_ERROR;
+}

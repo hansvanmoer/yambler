@@ -15,4 +15,6 @@ void close_binary_file(yambler_decoder_state *state);
 
 yambler_status binary_read(yambler_decoder_state state, yambler_byte *buffer, size_t buffer_size, size_t *read_count);
 
+yambler_status binary_write(yambler_encoder_state state, const yambler_byte *buffer, size_t buffer_size, size_t *write_count);
+
 #endif

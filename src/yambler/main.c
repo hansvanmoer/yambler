@@ -12,38 +12,36 @@ yambler_status decode(){
 	yambler_decoder_p decoder;
 	yambler_status status = yambler_decoder_create(&decoder, buffer_size * 4, input_encoding, &binary_read, NULL, &open_binary_file_for_read, &close_binary_file);
 	if(status){
-		printf("unable to create decoder\n");
+		fprintf(stderr, "unable to create decoder\n");
 		return status;
 	}
 	
 	yambler_char *buffer = malloc(sizeof(yambler_char) * buffer_size);
 	if(buffer == NULL){
+		fprintf(stderr, "unable to allocate buffer");
 		yambler_decoder_destroy(&decoder);
 		return YAMBLER_ALLOC_ERROR;
 	}
 	FILE *file = fopen(output_path, "wb");
 	if(file == NULL){
-		printf("unable to open output file '%s'\n", output_path);
+		fprintf(stderr,"unable to open output file '%s'\n", output_path);
+		free(buffer);
 		yambler_decoder_destroy(&decoder);
 		return YAMBLER_ERROR;
 	}
 
 	status = yambler_decoder_open(decoder);
 	if(status){
-		printf("unable to open file '%s'\n", input_path);
+		fprintf(stderr,"unable to open file '%s'\n", input_path);
 		return status;
 	}
 
 	size_t count;
 	while((status = yambler_decoder_decode(decoder,  buffer, buffer_size, &count)) == YAMBLER_OK){
-		printf("output count: %d\n", (int)count);
 		if(count == 0){
 			break;
 		}
-		for(size_t i = 0; i < count; ++i){
-			printf("%d\n", (int)buffer[i]);
-		}
-		fwrite(buffer, sizeof(yambler_char), buffer_size, file);
+		fwrite(buffer, sizeof(yambler_char), count, file);
 	}
 
 	yambler_decoder_close(decoder);
@@ -53,7 +51,50 @@ yambler_status decode(){
 }
 
 yambler_status encode(){
-	return YAMBLER_OK;
+	yambler_encoder_p encoder;
+
+	yambler_status status = yambler_encoder_create(&encoder, buffer_size * 4, output_encoding, encoder_flags, &binary_write, NULL, &open_binary_file_for_write , &close_binary_file);
+	if(status){
+		fprintf(stderr,"unable to create encoder\n");
+		return status;
+	}
+
+	yambler_char *buffer = malloc(sizeof(yambler_byte) * buffer_size * 4);
+	if(buffer == NULL){
+		fprintf(stderr, "unable to allocate buffer\n");
+		yambler_encoder_destroy(&encoder);
+		return YAMBLER_ALLOC_ERROR;
+	}
+
+	FILE *file = fopen(input_path, "rb");
+	if(file == NULL){
+		fprintf(stderr,"unable to open input file '%s'\n", input_path);
+		free(buffer);
+		yambler_encoder_destroy(&encoder);
+	}
+
+	status = yambler_encoder_open(encoder);
+	if(status){
+		fprintf(stderr, "unable to open encoder\n");
+		return status;
+	}
+	
+	while(1){
+		size_t count = fread(buffer, sizeof(yambler_char) ,buffer_size * 4, file);
+		if(count == 0){
+			break;
+		}
+		size_t write_count;
+		status = yambler_encoder_encode(encoder, buffer, count, &write_count);
+		if(status || write_count == 0){
+			break;
+		}
+	}
+	yambler_encoder_close(encoder);
+	fclose(file);
+	free(buffer);
+	yambler_encoder_destroy(&encoder);
+	return status;
 }
 
 yambler_status execute_action(){

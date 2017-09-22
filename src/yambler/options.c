@@ -21,11 +21,15 @@ enum yambler_encoding input_encoding = YAMBLER_ENCODING_DETECT;
 
 enum yambler_encoding output_encoding = YAMBLER_ENCODING_UTF_8;
 
-#define OPT_STRING "dv"
+yambler_encoder_flag encoder_flags = 0;
+
+#define OPT_STRING "devb"
 
 static struct option options[] = {
 	{"decode",0,NULL,ACTION_DECODE},
+	{"encode",0, NULL, ACTION_ENCODE},
 	{"verbose",0,NULL, VERBOSITY_VERBOSE},
+	{"bom",0,NULL,'b'},
 	{NULL, 0, NULL, 0}
 };
 
@@ -39,10 +43,14 @@ yambler_status parse_options(int arg_count, char * const args[]){
 	while((result = getopt_long(arg_count, args, OPT_STRING, options, NULL)) != -1){
 		switch(result){
 		case ACTION_DECODE:
-			action = ACTION_DECODE;
+		case ACTION_ENCODE:
+			action = result;
 			break;
 		case VERBOSITY_VERBOSE:
 			verbosity = VERBOSITY_VERBOSE;
+			break;
+		case 'b':
+			encoder_flags |= YAMBLER_ENCODER_INCLUDE_BOM;
 			break;
 		default:
 			return YAMBLER_ERROR;
