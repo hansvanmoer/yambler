@@ -3,6 +3,7 @@
 #include "yambler_decoder.h"
 
 #include "options.h"
+#include "io.h"
 
 #include <stdlib.h>
 #include <stdio.h>
