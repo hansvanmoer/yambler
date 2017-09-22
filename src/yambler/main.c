@@ -9,6 +9,8 @@
 #include <getopt.h>
 #include <linux/limits.h>
 
+#include <iconv.h>
+
 #define ACTION_NONE '\0'
 #define ACTION_DECODE 'd'
 #define ACTION_ENCODE 'e'
@@ -26,6 +28,14 @@ static char output_path[PATH_MAX + 1];
 #define VERBOSITY_SILENT '\0'
 
 static int verbosity = VERBOSITY_SILENT;
+
+#define DEFAULT_BUFFER_SIZE 1024
+
+static size_t buffer_size = DEFAULT_BUFFER_SIZE;
+
+enum yambler_encoding input_encoding = YAMBLER_ENCODING_DETECT;
+
+enum yambler_encoding output_encoding = YAMBLER_ENCODING_UTF_8;
 
 #define OPT_STRING "dv"
 
@@ -84,6 +94,7 @@ static yambler_status parse_options(int arg_count, char * const args[]){
 yambler_status open_binary_file_for_read(yambler_decoder_state *state){
 	FILE *file = fopen(input_path, "rb");
 	if(file == NULL){
+		fprintf(stderr, "unable to open file for read '%s'\n", input_path);
 		return YAMBLER_ERROR;
 	}else{
 		*state = (yambler_decoder_state)file;
@@ -94,6 +105,7 @@ yambler_status open_binary_file_for_read(yambler_decoder_state *state){
 yambler_status open_binary_file_for_write(yambler_encoder_state *state){
 	FILE *file = fopen(output_path, "wb");
 	if(file == NULL){
+		fprintf(stderr, "unable to open file for write '%s'\n", output_path);
 		return YAMBLER_ERROR;
 	}else{
 		*state = (yambler_encoder_state)file;
@@ -112,6 +124,7 @@ void close_binary_file(yambler_decoder_state *state){
 yambler_status binary_read(yambler_decoder_state state, yambler_byte *buffer, size_t buffer_size, size_t *read_count){
 	FILE *file = (FILE *)state;
 	*read_count = fread(buffer, sizeof(yambler_byte), buffer_size, file);
+	printf("read count: %d\n",(int)*read_count); 
 	return YAMBLER_OK;
 }
 
@@ -192,6 +205,65 @@ void parse_interactive(){
 	}
 }
 
+yambler_status decode(){
+	yambler_decoder_p decoder;
+	yambler_status status = yambler_decoder_create(&decoder, buffer_size * 4, input_encoding, &binary_read, NULL, &open_binary_file_for_read, &close_binary_file);
+	if(status){
+		printf("unable to create decoder\n");
+		return status;
+	}
+	
+	yambler_char *buffer = malloc(sizeof(yambler_char) * buffer_size);
+	if(buffer == NULL){
+		yambler_decoder_destroy(&decoder);
+		return YAMBLER_ALLOC_ERROR;
+	}
+	FILE *file = fopen(output_path, "wb");
+	if(file == NULL){
+		printf("unable to open output file '%s'\n", output_path);
+		yambler_decoder_destroy(&decoder);
+		return YAMBLER_ERROR;
+	}
+
+	status = yambler_decoder_open(decoder);
+	if(status){
+		printf("unable to open file '%s'\n", input_path);
+		return status;
+	}
+
+	size_t count;
+	while((status = yambler_decoder_decode(decoder,  buffer, buffer_size, &count)) == YAMBLER_OK){
+		printf("output count: %d\n", (int)count);
+		if(count == 0){
+			break;
+		}
+		for(size_t i = 0; i < count; ++i){
+			printf("%d\n", (int)buffer[i]);
+		}
+		fwrite(buffer, sizeof(yambler_char), buffer_size, file);
+	}
+
+	yambler_decoder_close(decoder);
+	yambler_decoder_destroy(&decoder);
+	fclose(file);
+	return status;
+}
+
+yambler_status encode(){
+	return YAMBLER_OK;
+}
+
+yambler_status execute_action(){
+	switch(action){
+	case ACTION_DECODE:
+		return decode();
+	case ACTION_ENCODE:
+		return encode();
+	default:
+		return YAMBLER_ERROR;
+	}
+}
+
 int main(int arg_count, char * const args[]){
 	yambler_status status = parse_options(arg_count, args);
 	if(status){
@@ -202,5 +274,14 @@ int main(int arg_count, char * const args[]){
 	}
 	if(verbosity == VERBOSITY_VERBOSE){
 		print_options();
+	}
+	if(action == ACTION_NONE){
+		return 0;
+	}else{
+		status = execute_action();
+		if(status){
+			printf("error: %s\n", yambler_status_message(status));
+		}
+		return (int)status;
 	}
 }

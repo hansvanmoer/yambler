@@ -177,13 +177,14 @@ AUTOCONF = ${SHELL} /home/hans/dev/yambler/missing autoconf
 AUTOHEADER = ${SHELL} /home/hans/dev/yambler/missing autoheader
 AUTOMAKE = ${SHELL} /home/hans/dev/yambler/missing automake-1.14
 AWK = gawk
-CC = gcc
+CC = gcc -std=gnu99
 CCDEPMODE = depmode=gcc3
 CFLAGS = -g -O2
-CPP = gcc -E
+CPP = gcc -std=gnu99 -E
 CPPFLAGS = 
 CYGPATH_W = echo
 DEFS = -DHAVE_CONFIG_H
+DEJAGNU = $top_srcdir/src/test/global-conf.exp
 DEPDIR = .deps
 ECHO_C = 
 ECHO_N = -n
@@ -258,7 +259,7 @@ target_alias =
 top_build_prefix = ../
 top_builddir = ..
 top_srcdir = ..
-SUBDIRS = yambler test
+SUBDIRS = libyambler yambler
 all: all-recursive
 
 .SUFFIXES:

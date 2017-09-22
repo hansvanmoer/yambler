@@ -21,6 +21,8 @@ enum yambler_status_code{
 
 typedef enum yambler_status_code yambler_status;
 
+const char *yambler_status_message(yambler_status status);
+
 enum yambler_encoding{
 	YAMBLER_ENCODING_DETECT,
 	YAMBLER_ENCODING_UTF_8,
