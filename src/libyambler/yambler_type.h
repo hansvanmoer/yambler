@@ -2,10 +2,16 @@
 #define YAMBLER_TYPE_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef char yambler_byte;
 
 typedef uint32_t yambler_char;
+
+struct yambler_string{
+  yambler_char *begin;
+  size_t length;
+};
 
 enum yambler_status_code{
 	YAMBLER_OK = 0,

@@ -1,32 +1,39 @@
 #ifndef YAMBLER_PARSER_H
 #define YAMBLER_PARSER_H
 
+#include "yambler_input_buffer.h"
 #include "yambler_type.h"
 
 #include <stddef.h>
 
-struct yambler_input_buffer;
-
-typedef struct yambler_input_buffer * yambler_input_buffer_p;
-
-typedef yambler_status (*yambler_read)(yambler_char *, size_t, size_t *);
-
-typedef yambler_status (*yambler_read_binary)(yambler_byte *, size_t, size_t *);
-
-yambler_status yambler_input_buffer_create(yambler_input_buffer_p *buffer_p, size_t initial_size, yambler_read read_callback);
-
-yambler_status yambler_input_buffer_create_binary(yambler_input_buffer_p *buffer_p, size_t initial_size, yambler_read_binary read_callback, const char *encoding_name);
-
-yambler_status yambler_input_buffer_open(yambler_input_buffer_p buffer);
-
-yambler_status yambler_input_buffer_reserve(yambler_input_buffer_p buffer, size_t length);
-
-yambler_status yambler_input_buffer_get(yambler_input_buffer_p buffer, yambler_char *dest);
-
-void yambler_input_buffer_destroy(yambler_input_buffer_p *buffer);
-
 struct yambler_parser;
 
+enum yambler_parser_event_type{
+  YAMBLER_PE_DOCUMENT_BEGIN,
+  YAMBLER_PE_MAP_BEGIN,
+  YAMBLER_PE_MAP_END,
+  YAMBLER_PE_DOCUMENT_END,
+  YAMBLER_PE_SEQUENCE_BEGIN,
+  YAMBLER_PE_SEQUENCE_END,
+  YAMBLER_PE_SCALAR,
+  YAMBLER_PE_ALIAS,
+  YAMBLER_PE_COMMENT,
+  YAMBLER_PE_DIRECTIVE
+};
+
+struct yambler_parser_event{
+  enum yambler_parser_event_type type;
+  struct yambler_string value;
+};
+
 typedef struct yambler_parser * yambler_parser_p;
+
+yambler_status yambler_parser_create(yambler_parser_p *dest);
+
+yambler_status yambler_parser_open(yambler_parser_p parser, yambler_input_buffer_p input_buffer);
+
+yambler_status yambler_parser_parse(yambler_parser_p parser, struct yambler_parser_event *event);
+
+void yambler_parser_destroy(yambler_parser_p *src);
 
 #endif
