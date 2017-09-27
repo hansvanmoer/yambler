@@ -28,10 +28,8 @@ struct yambler_parser{
 	
 	struct yambler_parser_event *event;
 	int done;
-	
-	const char *message;
-	int line;
-	int column;
+
+	struct yambler_parser_error error;
 
 	int match;
 
@@ -98,17 +96,14 @@ yambler_status yambler_parser_create(yambler_parser_p *dest){
 	}
 
 	parser->capture.begin = malloc(sizeof(yambler_char) * CAPTURE_INITIAL_SIZE);
+	if(parser->capture.begin == NULL){
+		free(parser);
+		return YAMBLER_ALLOC_ERROR;
+	}
+	parser->capture.end = parser->capture.begin + CAPTURE_INITIAL_SIZE;
 	
-	parser->input = NULL;
 	parser->opened = 0;
-	
-	parser->next = NULL;
-	parser->done = 0;
-	
-	parser->message = "";
-	parser->line = 0;
-	parser->column = 0;
-	
+    
 	*dest = parser;
 	
 	return YAMBLER_OK;
@@ -126,10 +121,12 @@ yambler_status yambler_parser_open(yambler_parser_p parser, yambler_input_buffer
 	parser->done = 0;
 	parser->opened = 1;
 	
-	parser->message = "";
-	parser->line = 0;
-	parser->column = 0;
+	parser->error.line = 0;
+	parser->error.column = 0;
+	parser->error.message = "";
 
+	parser->capture.current = parser->capture.begin;
+	
 	return yambler_input_buffer_open(input);
 }
 
@@ -148,6 +145,15 @@ yambler_status yambler_parser_parse(yambler_parser_p parser, struct yambler_pars
 		return YAMBLER_OK;
 	}
 	return YAMBLER_EMPTY;
+}
+
+int yambler_parser_get_error(yambler_parser_p parser, struct yambler_parser_error *error){
+	if(parser->error.message != '\0'){
+		*error = parser->error;
+		return 1;
+	}else{
+		return 0;
+	}
 }
 
 void yambler_parser_close(yambler_parser_p parser){
@@ -169,6 +175,8 @@ void yambler_parser_destroy(yambler_parser_p *src){
 	if(parser->opened){
 		yambler_parser_close(*src);
 	}
+
+	free(parser->capture.begin);
   
 	free(parser);
 }
@@ -196,10 +204,10 @@ static yambler_status get_char(yambler_parser_p parser, yambler_char *dest){
 		return status;
 	}
 	if(match_newline(c)){
-		parser->column = 0;
-		++parser->line;
+		parser->error.column = 0;
+		++parser->error.line;
 	}else{
-		++parser->column;
+		++parser->error.column;
 	}
 }
 
@@ -210,10 +218,10 @@ static yambler_status peek_char(yambler_parser_p parser, yambler_char *dest){
 static void pop_char(yambler_parser_p parser, yambler_char peeked){
 	yambler_input_buffer_pop(parser->input);
 	if(match_newline(peeked)){
-		parser->column = 0;
-		++parser->line;
+		parser->error.column = 0;
+		++parser->error.line;
 	}else{
-		++parser->column;
+		++parser->error.column;
 	}
 }
 
@@ -259,6 +267,7 @@ static yambler_status skip_none_or_more_pred(yambler_parser_p parser, yambler_pr
 }
 
 static yambler_status capture_until_pred(yambler_parser_p parser, yambler_predicate pred){
+	reset_capture(parser);
 	yambler_char c;
 	do{
 		yambler_status status = peek_char(parser, &c);
@@ -293,7 +302,7 @@ static int match_newline(yambler_char c){
  */
 
 static yambler_status parse_begin(yambler_parser_p parser){
-	parser->next = &parse_end;
+	parser->next = &parse;
 	parser->done = 1;
 	parser->event->type = YAMBLER_PE_DOCUMENT_BEGIN;
 	return YAMBLER_OK;
@@ -301,9 +310,14 @@ static yambler_status parse_begin(yambler_parser_p parser){
 
 static yambler_status parse_comment(yambler_parser_p parser){
 	yambler_status status = capture_until_pred(parser, &match_newline);
-	if(status == YAMBLER_OK || status == YAMBLER_EMPTY){
+	switch(status){
+	case YAMBLER_OK:
+		get_char(parser, NULL);
+	case YAMBLER_EMPTY:
 		parser->event->type = YAMBLER_PE_COMMENT;
 		deliver_capture(parser);
+		parser->done = 1;
+		parser->next = &parse;
 	}
 	return status;
 }
@@ -314,7 +328,7 @@ static yambler_status parse(yambler_parser_p parser){
 		return status;
 	}
 	yambler_char c;
-	status = yambler_input_buffer_peek(parser->input, &c);
+	status = peek_char(parser, &c);
 	switch(status){
 	case YAMBLER_EMPTY:
 		parser->next = &parse_end;
@@ -327,8 +341,10 @@ static yambler_status parse(yambler_parser_p parser){
 	switch(c){
 	case COMMENT_CHAR:
 		parser->next = &parse_comment;
+		pop_char(parser, c);
 		return YAMBLER_OK;
 	default:
+		parser->error.message = "unexpected character";
 		return YAMBLER_SYNTAX_ERROR;
 	}
 };

@@ -22,6 +22,12 @@ enum yambler_parser_event_type{
   YAMBLER_PE_DIRECTIVE
 };
 
+struct yambler_parser_error{
+	int line;
+	int column;
+	const char *message;
+};
+
 struct yambler_parser_event{
   enum yambler_parser_event_type type;
   struct yambler_string value;
@@ -34,6 +40,8 @@ yambler_status yambler_parser_create(yambler_parser_p *dest);
 yambler_status yambler_parser_open(yambler_parser_p parser, yambler_input_buffer_p input_buffer);
 
 yambler_status yambler_parser_parse(yambler_parser_p parser, struct yambler_parser_event *event);
+
+int yambler_parser_get_error(yambler_parser_p parser, struct yambler_parser_error *error);
 
 void yambler_parser_close(yambler_parser_p parser);
 

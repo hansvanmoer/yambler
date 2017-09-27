@@ -3,7 +3,7 @@
 
 #include "yambler_type.h"
 
-#define YAMBLER_INTERNAL_ENCODING "UCS-4"
+const char *yambler_native_encoding_name();
 
 const char *yambler_encoding_name(enum yambler_encoding encoding);
 

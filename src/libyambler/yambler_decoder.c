@@ -160,7 +160,7 @@ yambler_status yambler_decoder_open(yambler_decoder_p decoder){
 			return status;
 		}
 	}
-	iconv_t descriptor = iconv_open(YAMBLER_INTERNAL_ENCODING, yambler_encoding_name(encoding));
+	iconv_t descriptor = iconv_open(yambler_native_encoding_name(), yambler_encoding_name(encoding));
 	if(descriptor == (iconv_t)-1){
 		if(decoder->close){
 			(*decoder->close)(&decoder->read_state);

@@ -108,7 +108,7 @@ static void add_bom(yambler_encoder_p encoder){
 yambler_status yambler_encoder_open(yambler_encoder_p encoder){
 	assert(encoder != NULL);
 	
-	encoder->descriptor = iconv_open(yambler_encoding_name(encoder->encoding), YAMBLER_INTERNAL_ENCODING);
+	encoder->descriptor = iconv_open(yambler_encoding_name(encoder->encoding), yambler_native_encoding_name());
 	if(encoder->descriptor == (iconv_t)-1){
 		return YAMBLER_ENCODING_ERROR;
 	}

@@ -10,6 +10,22 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+yambler_status print_yambler_string(struct yambler_string str){
+	char *buffer = malloc(str.length + 1);
+	if(buffer == NULL){
+		return YAMBLER_ALLOC_ERROR;
+	}
+	for(size_t i = 0; i < str.length; ++i){
+		if(str.begin[i] < 256){
+			buffer[i] = (char)str.begin[i];
+		}
+	}
+	buffer[str.length] = '\n';
+	fwrite(buffer, sizeof(char), str.length + 1, stdout);
+	free(buffer);
+	return YAMBLER_OK;
+}
+
 yambler_status parse(){
 	yambler_decoder_p decoder;
 	yambler_status status = yambler_decoder_create(&decoder, buffer_size * 4, input_encoding, &binary_read, NULL, &open_binary_file_for_read, &close_binary_file);
@@ -48,13 +64,24 @@ yambler_status parse(){
 		if(status){
 			break;
 		}
+		switch(event.type){
+		case YAMBLER_PE_COMMENT:
+			printf("comment: ");
+			print_yambler_string(event.value);
+			break;
+		default:
+			printf("unknown type: %d\n", (int)event.type);
+			break;
+		}
 		printf("parser run\n");
 	}while(1);
 	if(status == YAMBLER_EMPTY){
 		status = YAMBLER_OK;
 		printf("parser finished\n");
 	}else{
-		fprintf(stderr, "parser error\n");
+		struct yambler_parser_error error;
+		yambler_parser_get_error(parser, &error);
+		fprintf(stderr, "parser error '%s' at line %d, column %d\n", error.message, error.line, error.column);
 	}
 	yambler_parser_destroy_all(&parser, &buffer, &decoder);
 	return status;
