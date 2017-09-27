@@ -312,7 +312,7 @@ static yambler_status parse_comment(yambler_parser_p parser){
 	yambler_status status = capture_until_pred(parser, &match_newline);
 	switch(status){
 	case YAMBLER_OK:
-		get_char(parser, NULL);
+		pop_char(parser, LINE_FEED_CHAR);
 	case YAMBLER_EMPTY:
 		parser->event->type = YAMBLER_PE_COMMENT;
 		deliver_capture(parser);
