@@ -23,13 +23,14 @@ enum yambler_encoding output_encoding = YAMBLER_ENCODING_UTF_8;
 
 yambler_encoder_flag encoder_flags = 0;
 
-#define OPT_STRING "devb"
+#define OPT_STRING "devbp"
 
 static struct option options[] = {
 	{"decode",0,NULL,ACTION_DECODE},
 	{"encode",0, NULL, ACTION_ENCODE},
 	{"verbose",0,NULL, VERBOSITY_VERBOSE},
 	{"bom",0,NULL,'b'},
+	{"parse",0, NULL, ACTION_PARSE},
 	{NULL, 0, NULL, 0}
 };
 
@@ -44,6 +45,7 @@ yambler_status parse_options(int arg_count, char * const args[]){
 		switch(result){
 		case ACTION_DECODE:
 		case ACTION_ENCODE:
+		case ACTION_PARSE:
 			action = result;
 			break;
 		case VERBOSITY_VERBOSE:
@@ -114,11 +116,13 @@ void parse_interactive(){
 		printf("please enter the action to be performed by selecting the character, followed by RETURN, from the following options:\n");
 		printf("'d' : decode the input file and store the result into the output file\n");
 		printf("'e' : encode the input file and store the result into the output file\n");
+		printf("'p' : parse the input file and store the result into the output file\n");
 			char *result = fgets(buffer, 3, stdin);
 			if(result != NULL && buffer[1] == '\n'){
 				switch(buffer[0]){
 				case ACTION_DECODE:
 				case ACTION_ENCODE:
+				case ACTION_PARSE:
 					action = buffer[0];
 					retry = 0;
 					break;

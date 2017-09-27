@@ -9,6 +9,7 @@
 #define ACTION_NONE '\0'
 #define ACTION_DECODE 'd'
 #define ACTION_ENCODE 'e'
+#define ACTION_PARSE 'p'
 
 extern int action;
 

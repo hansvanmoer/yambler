@@ -1,12 +1,64 @@
 #include "yambler_type.h"
 #include "yambler_encoder.h"
 #include "yambler_decoder.h"
+#include "yambler_input_buffer.h"
+#include "yambler_parser.h"
 
 #include "options.h"
 #include "io.h"
 
 #include <stdlib.h>
 #include <stdio.h>
+
+yambler_status parse(){
+	yambler_decoder_p decoder;
+	yambler_status status = yambler_decoder_create(&decoder, buffer_size * 4, input_encoding, &binary_read, NULL, &open_binary_file_for_read, &close_binary_file);
+	if(status){
+		fprintf(stderr, "unable to create decoder\n");
+		return status;
+	}
+
+	yambler_input_buffer_p buffer = NULL;
+	status = yambler_input_buffer_create_with_decoder(&buffer, buffer_size, decoder);
+	if(status){
+		fprintf(stderr, "unable to create input buffer\n");
+		yambler_decoder_destroy(&decoder);
+		return status;
+	}
+	
+	yambler_parser_p parser = NULL;
+	status = yambler_parser_create(&parser);
+	if(status){
+		fprintf(stderr, "unable to create parser\n");
+		yambler_input_buffer_destroy_all(&buffer, &decoder);
+		return status;
+	}
+	
+	status = yambler_parser_open(parser, buffer);
+	if(status){
+		fprintf(stderr, "unable to open parser\n");
+		yambler_parser_destroy_all(&parser, &buffer, &decoder);
+		return status;
+	}
+
+	struct yambler_parser_event event;
+	
+	do{
+		status = yambler_parser_parse(parser, &event);
+		if(status){
+			break;
+		}
+		printf("parser run\n");
+	}while(1);
+	if(status == YAMBLER_EMPTY){
+		status = YAMBLER_OK;
+		printf("parser finished\n");
+	}else{
+		fprintf(stderr, "parser error\n");
+	}
+	yambler_parser_destroy_all(&parser, &buffer, &decoder);
+	return status;
+}
 
 yambler_status decode(){
 	yambler_decoder_p decoder;
@@ -101,6 +153,8 @@ yambler_status execute_action(){
 	switch(action){
 	case ACTION_DECODE:
 		return decode();
+	case ACTION_PARSE:
+		return parse();
 	case ACTION_ENCODE:
 		return encode();
 	default:

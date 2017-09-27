@@ -18,6 +18,8 @@ const char *yambler_status_message(yambler_status status){
 		return "invalid byte order mark";
 	case YAMBLER_ENCODING_ERROR:
 		return "encoding error";
+	case YAMBLER_SYNTAX_ERROR:
+		return "syntax error";
 	default:
 		return "unknown error";
 	}

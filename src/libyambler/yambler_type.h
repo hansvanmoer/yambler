@@ -9,8 +9,8 @@ typedef char yambler_byte;
 typedef uint32_t yambler_char;
 
 struct yambler_string{
-  yambler_char *begin;
-  size_t length;
+	yambler_char *begin;
+	size_t length;
 };
 
 enum yambler_status_code{
@@ -22,6 +22,7 @@ enum yambler_status_code{
 	YAMBLER_EMPTY,
 	YAMBLER_INVALID_BOM,
 	YAMBLER_ENCODING_ERROR,
+	YAMBLER_SYNTAX_ERROR,
 	YAMBLER_LAST_ERROR
 };
 

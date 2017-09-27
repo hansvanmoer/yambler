@@ -24,6 +24,7 @@ struct yambler_decoder{
 	enum yambler_encoding encoding;
 	iconv_t descriptor;
 
+	int opened;
 	yambler_decoder_state read_state;
 	yambler_decoder_open_callback open;
 	yambler_decoder_read_callback read;
@@ -54,6 +55,7 @@ yambler_status yambler_decoder_create(yambler_decoder_p *result, size_t buffer_s
 	decoder->read_count = 0;
 	decoder->length = 0;
 	decoder->encoding = encoding;
+	decoder->opened = 0;
 	decoder->read_state = state;
 	decoder->read = read;
 	decoder->open = open;
@@ -137,6 +139,10 @@ static yambler_status yambler_decoder_detect_encoding(yambler_decoder_p decoder,
 
 yambler_status yambler_decoder_open(yambler_decoder_p decoder){
 	assert(decoder != NULL);
+
+	if(decoder->opened){
+		yambler_decoder_close(decoder);
+	}
 	
 	if(decoder->open){
 		yambler_status status = (*decoder->open)(&decoder->read_state);
@@ -162,6 +168,7 @@ yambler_status yambler_decoder_open(yambler_decoder_p decoder){
 		return YAMBLER_ENCODING_ERROR;
 	}
 	decoder->descriptor = descriptor;
+	decoder->opened = 1;
 	return YAMBLER_OK;
 }
 
@@ -217,19 +224,26 @@ yambler_status yambler_decoder_decode(yambler_decoder_p decoder, yambler_char *b
 
 void yambler_decoder_close(yambler_decoder_p decoder){
 	assert(decoder != NULL);
-	assert(decoder->descriptor != (iconv_t)-1);
-	
-	iconv_close(decoder->descriptor);
-	if(decoder->close){
-		(*decoder->close)(&decoder->read_state);
+
+	if(decoder->opened){
+		assert(decoder->descriptor != (iconv_t)-1);
+		iconv_close(decoder->descriptor);
+		if(decoder->close){
+			(*decoder->close)(&decoder->read_state);
+		}
+		decoder->opened = 0;
 	}
 }
 
 void yambler_decoder_destroy(yambler_decoder_p *src){
 	assert(src != NULL);
-	assert(*src != NULL);
 
 	yambler_decoder_p decoder = *src;
+
+	assert(decoder != NULL);
+
+	yambler_decoder_close(decoder);
+	
 	free(decoder->buffer);
 	free(decoder);
 	*src = NULL;

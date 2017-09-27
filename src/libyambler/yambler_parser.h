@@ -1,6 +1,7 @@
 #ifndef YAMBLER_PARSER_H
 #define YAMBLER_PARSER_H
 
+#include "yambler_decoder.h"
 #include "yambler_input_buffer.h"
 #include "yambler_type.h"
 
@@ -34,6 +35,10 @@ yambler_status yambler_parser_open(yambler_parser_p parser, yambler_input_buffer
 
 yambler_status yambler_parser_parse(yambler_parser_p parser, struct yambler_parser_event *event);
 
+void yambler_parser_close(yambler_parser_p parser);
+
 void yambler_parser_destroy(yambler_parser_p *src);
+
+void yambler_parser_destroy_all(yambler_parser_p *parser_src, yambler_input_buffer_p *buffer_src, yambler_decoder_p *decoder_src);
 
 #endif
