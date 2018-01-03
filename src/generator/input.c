@@ -11,6 +11,14 @@ static int column;
 
 static size_t capture_pos;
 
+int input_line(){
+  return line;
+}
+
+int input_column(){
+  return column;
+}
+
 typedef int (*predicate)(char);
 
 static int is_whitespace(char c){
@@ -26,7 +34,11 @@ static int is_comment_delimiter(char c){
 }
 
 static int is_text(char c){
-  return !is_whitespace(c) && !is_newline(c) && !is_comment_delimiter('#');
+  return !is_whitespace(c) && !is_newline(c) && !is_comment_delimiter(c);
+}
+
+static int is_code_delimiter(char c){
+  return c == '@';
 }
 
 static char peek(){
@@ -70,8 +82,20 @@ static void end_capture(struct token *token){
   token->text.length = input_pos - capture_pos;
 };
 
+static void end_capture_trimmed(struct token *token){
+  while(capture_pos != input_pos && (is_whitespace(input_buffer.data[capture_pos]) || is_newline(input_buffer.data[capture_pos]))){
+    ++capture_pos;
+  }
+  size_t capture_end = input_pos;
+  while(capture_end != capture_pos && (is_whitespace(input_buffer.data[capture_end - 1]) || is_newline(input_buffer.data[capture_end - 1]))){
+    --capture_end;
+  }
+  token->text.data = input_buffer.data + capture_pos;
+  token->text.length = capture_end - capture_pos;
+}
+
 static int eof(){
-  return input_pos == input_pos;
+  return input_pos == input_buffer.length;
 }
 
 status open_input(const char *path){
@@ -80,7 +104,7 @@ status open_input(const char *path){
     fprintf(stderr, "unable to open file '%s'\n", path);
     return STATUS_IO_ERROR;
   }
-  if(fseek(file, SEEK_END, 0)){
+  if(fseek(file, 0, SEEK_END)){
     fclose(file);
     fprintf(stderr, "unable to determine file size '%s'\n", path);
     return STATUS_IO_ERROR;
@@ -91,7 +115,7 @@ status open_input(const char *path){
     fprintf(stderr, "unable to determine file size '%s'\n", path);
     return STATUS_IO_ERROR;
   }
-  if(fseek(file, SEEK_SET, 0)){
+  if(fseek(file, 0, SEEK_SET)){
    fclose(file);
     fprintf(stderr, "unable to determine file size '%s'\n", path);
     return STATUS_IO_ERROR;
@@ -108,6 +132,7 @@ status open_input(const char *path){
     return STATUS_IO_ERROR;
   }
   input_buffer.length = input_buffer.size;
+  input_pos = 0;
   line = 1;
   column = 0;
   return STATUS_OK;
@@ -128,13 +153,29 @@ status next_token(struct token *token){
     }else if(is_newline(c)){
       next_pos();
       token->type = TOKEN_NEWLINE;
+    }else if(is_code_delimiter(c)){
+      next_pos();
+      skip_while(&is_whitespace);
+      start_capture();
+      skip_until(&is_code_delimiter);
+      c = peek();
+      if(is_code_delimiter(c)){
+	end_capture_trimmed(token);
+	next_pos();
+      }else{
+	fprintf(stderr, "unexpected character '%c', expected @ at line %d, column %d\n", c, line, column);
+	return STATUS_SYNTAX_ERROR;
+      }
+      
+      token->type = TOKEN_CODE;
     }else{
       start_capture();
       if(skip_while(&is_text) == 0){
 	fprintf(stderr, "unexpected character at line %d, column %d\n", line, column);
-	return STATUS_ERROR;
+	return STATUS_SYNTAX_ERROR;
       }
       end_capture(token);
+      token->type = TOKEN_TEXT;
     }
     return STATUS_OK;
   }

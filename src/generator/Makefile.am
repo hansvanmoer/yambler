@@ -2,6 +2,6 @@
 # parser generator makefile
 #
 
-noinst_LIBRARIES=libgenerator.a
+noinst_PROGRAMS=generator
 
-libgenerator_a_SOURCES=common.c input.c output.c generator.c
+generator_SOURCES=common.c input.c output.c generator.c

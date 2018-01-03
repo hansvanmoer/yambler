@@ -2,6 +2,7 @@
 #define YAMBLER_GENERATOR_COMMON_H
 
 #include <stddef.h>
+#include <stdio.h>
 
 enum status_code{
   STATUS_OK = 0,
@@ -9,10 +10,15 @@ enum status_code{
   STATUS_ALLOC_ERROR,
   STATUS_IO_ERROR,
   STATUS_EMPTY,
-  STATUS_SYNTAX_ERROR
+  STATUS_SYNTAX_ERROR,
+  STATUS_PATH_TOO_LONG,
+  STATUS_MISMATCHED_INDENTATION,
+  STATUS_SUBSTITUTION_FAILED
 };
 
 typedef enum status_code status;
+
+const char *status_message(status status_);
 
 struct string{
   char *data;
@@ -20,6 +26,10 @@ struct string{
 };
 
 status string_create(struct string *str, size_t length);
+
+void string_print(FILE *file, struct string str);
+
+void string_print_quoted(FILE *file, struct string str);
 
 void string_destroy(struct string *str);
 
