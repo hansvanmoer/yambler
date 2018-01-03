@@ -2,4 +2,4 @@
 # Main source file
 #
 
-SUBDIRS=libyambler yambler
+SUBDIRS=generator libyambler yambler

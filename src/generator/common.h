@@ -7,7 +7,9 @@ enum status_code{
   STATUS_OK = 0,
   STATUS_ERROR,
   STATUS_ALLOC_ERROR,
-  STATUS_IO_ERROR
+  STATUS_IO_ERROR,
+  STATUS_EMPTY,
+  STATUS_SYNTAX_ERROR
 };
 
 typedef enum status_code status;
